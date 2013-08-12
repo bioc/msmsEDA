@@ -1,0 +1,391 @@
+%\VignetteIndexEntry{msmsEDA: Batch effects detection in LC-MSMS experiments}
+%\VignetteDepends{msmsEDA}
+%\VignetteKeywords{multivariate, hplot}
+%\VignettePackage{msmsEDA}
+
+\documentclass[12pt,a4paper,oneside]{article}
+\usepackage{fullpage}
+\usepackage{float}
+\usepackage[section]{placeins}
+\usepackage{enumerate}
+
+\begin{document}
+\SweaveOpts{keep.source=TRUE,concordance=TRUE}
+
+\title{msmsEDA \\
+       LC-MS/MS Exploratory Data Analysis}
+\author{Josep Gregori, Alex Sanchez, and Josep Villanueva\\
+   Vall Hebron Institute of Oncology \&\\
+   Statistics Dept. Barcelona University\\
+  \texttt{jgregori@vhio.net}}
+\date{June 2013}
+
+\maketitle
+
+\section{Introduction}
+
+Label-free differential proteomics is based on comparing the
+expression of proteins between different biological conditions
+\cite{mallik2010} \cite{neilson2011}.
+The experimental design involved for these experiments just
+requires elementary precautions such as randomization and
+blocking \cite{quinn}. Working with balanced blocks in which all
+biological conditions are measured by a number of technical
+replicates, and within the shortest time window possible, helps
+to reduce experimental bias. Unfortunately, there are many
+factors that may bias the results in a systematic manner:
+different operators, different chromatographic columns, different
+protein digestions, an eventual repair of the LC-MS system,
+and different laboratory environment conditions. Blocking and
+randomization help to control to some extent these factors.
+However, even using the best experimental design some
+uncontrolled variables may still interfere with differential
+proteomics experiments. These uncontrolled variables may be
+responsible for batch effects which are a type of bias usually
+evidenced when samples do not cluster by their biological
+condition when using unsupervised techniques such as Principal
+Components Analysis (PCA) or Hierarchical Clustering (HC)
+\cite{husson2010}. The most benign consequence of batch effects is an
+increase in the measured variability with a decreased
+sensitivity to detect biological differences. In the worst
+scenario, batch effects can mask completely the underlying
+biology in the experiment.
+\newline
+Exploratory Data Analysis (EDA) helps in evidencing confounding
+factors and eventual outliers. In front of any '-omics' experiment
+it is always wise to perfom an EDA before any differential expression
+statistical analysis \cite{luo2010} \cite{josep2012}. The results of 
+this exploratory analysis, 
+visualized by PCA maps, HC trees, and heatmaps, will inform about
+the extent of batch effects and the presence of putative outliers.
+As a result the analyst may decide on the inclusion of a blocking 
+factor to take into account the batch effects, or about the exclusion
+of a bad conditioned sample.
+
+\section{An example LC-MS/MS dataset}
+
+The dataset of this example \cite{josep2012} is the result of an spiking 
+experiment, 
+showing real LC-MS/MS data obtained in ideal conditions, and optimal 
+to detect batch effect factors. Samples of 500 micrograms of a standard 
+yeast lysate are spiked either with 200fm or 600fm of a complex mix of 
+48 human proteins (UPS1, Sigma-Aldrich). The measures were done in two
+different runs, separated by a year time. The first run consisted of
+four replicates of each condition, and the second run consisted of
+three replicates of each condition.
+\newline
+The dataset consists in an instance of the \emph{MSnSet} class, defined in the 
+MSnbase package \cite{Gatto2012}, a S4 class \cite{chambers} \cite{genolini}. 
+This \emph{MSnSet} object contains
+a spectral counts (SpC) matrix in the \emph{assayData}
+slot, and factors treatment and batch in the \emph{phenoData} slot.
+(See also the expressionSet vignette \cite{gentleman})
+
+<<echo=FALSE>>=
+options(continue=" ")
+@
+
+<<Chunk0, echo = TRUE>>=
+  library(msmsEDA)
+  data(msms.dataset)
+  msms.dataset
+  dim(msms.dataset)
+  head(pData(msms.dataset))
+  table(pData(msms.dataset)$treat)
+  table(pData(msms.dataset)$batch)
+  table(pData(msms.dataset)$treat, pData(msms.dataset)$batch)
+@
+
+The aim of the exploratory data analysis, in this case, is to evidence 
+the existence of batch effects between the two runs. And eventually to
+check the opportunity of a simple batch effects correction.
+\newline
+Before proceeding to the EDA, improper rows in the spectral counts
+matrix should be removed. By improper, we mean here, the rows with all
+zeroes, which could come from the subsetting from a bigger SpC matrix,
+and the rows belonging to artefactual identifications of '-R' proteins,
+also NAs, common when joining datasets in which not exactly the same
+proteins are identified, should be substituted by 0.
+
+<<Chunk1, echo=TRUE>>=
+e <- pp.msms.data(msms.dataset)
+processingData(e)
+dim(e)  
+setdiff(featureNames(msms.dataset), featureNames(e))
+@
+
+\section{SpC distribution} 
+
+A first glance to the contents of the spectral counts matrix 
+is given by the distribution of SpC by sample, including the
+number of proteins identified and the total spectral counts
+by sample.
+
+<<Chunk2, echo=TRUE>>=
+tfvnm <- count.stats(e)  
+{ cat("\nSample statistics after removing NAs and -R:\n\n")
+  cat("SpC matrix dimension:",dim(e),"\n\n")
+  print(tfvnm)
+}
+@
+
+Two graphical means will contribute to visualize this distribution.
+A set of boxplots by sample:
+
+<<Chunk3, echo=TRUE, eval=FALSE>>=
+boxplot(exprs(e),las=2,col="lavender")
+@
+
+\begin{figure}[H]
+\centering
+<<fig=TRUE,echo=FALSE, width=6, height=4>>=
+par(mar=c(5,4,0.5,2)+0.1)
+boxplot(exprs(e),las=2,col="lavender")
+@
+\caption{Samples boxplots}\label{boxplot}
+\end{figure}
+
+And a barplot of total SpC normalizing factors:
+
+<<Chunk4, echo=FALSE>>=
+nfact <- median(tfvnm[,2])/tfvnm[,2]
+@
+
+<<echo=TRUE, eval=FALSE>>=
+nfact <- median(tfvnm[,2])/tfvnm[,2]
+barplot(nfact,las=2,col="lavender")
+abline(h=1,lty=4)
+@
+
+\begin{figure}[H]
+\centering
+<<fig=TRUE,echo=FALSE,width=4,height=2.5>>=
+par(mar=c(4,4,0.5,2)+0.1)
+par(cex.axis=0.6,cex.lab=0.6)
+barplot(nfact,las=2,col="lavender")
+abline(h=1,lty=4)
+@
+\caption{Normalizing factors barplot}\label{barplot}
+\end{figure}
+
+\section{Principal Components Analysis} 
+
+A plot on the two principal components of the SpC matrix visualizes the
+clustering of samples. Ideally the samples belonging to the same condition 
+should cluster together. Any mixing of samples of different conditions
+may indicate the influence of some confounding factors.
+
+\begin{figure}[H]
+\centering
+<<fig=TRUE, echo=FALSE, width=6.5, height=8>>=
+facs <- pData(e)
+snms <- substr(as.character(facs$treat),1,2)
+snms <- paste(snms,as.integer(facs$batch),sep=".")
+par(mar=c(4,4,0.5,2)+0.1)
+par(mfrow=c(2,1))
+counts.pca(e, facs = pData(e)[, "treat", drop = FALSE],snms=snms)
+counts.pca(e, facs = pData(e)[, "batch", drop = FALSE],snms=snms)
+@
+\caption{PCA plot on PC1/PC2, showing confounding. The labels are colored 
+by treatment level on top, and by batch number bellow.
+Labels themselves are selfexplicative of treatment condition and batch.
+}\label{PCA}
+\end{figure}
+
+    
+<<ChunkPCA, echo=TRUE, tidy=FALSE>>=
+facs <- pData(e)
+snms <- substr(as.character(facs$treat),1,2)
+snms <- paste(snms,as.integer(facs$batch),sep=".")
+pcares <- counts.pca(e)
+smpl.pca <- pcares$pca
+{ cat("Principal components analisis on the raw SpC matrix\n")
+  cat("Variance of the first four principal components:\n\n")
+  print(summary(smpl.pca)$importance[,1:4])
+}
+@
+
+Note how in these plots the samples tend to cluster by batch instead of by
+treatment, this is evidence of a confounding factor. Something uncontrolled
+contributes globally to the results in a higer extend than the treatment 
+itself.
+
+
+\section{Hierarchical clustering} 
+
+The hierarchical clustering of samples offers another view of the same 
+phenomenon:
+
+\begin{figure}[H]
+\centering
+<<fig=TRUE, echo=TRUE, width=6.5, height=5>>=
+counts.hc(e,facs=pData(e)[, "treat", drop = FALSE])
+@
+\caption{Hirearchical clustering of samples, showing confounding. The labels 
+are colored by treatment level.
+}\label{HC1}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+<<fig=TRUE, echo=TRUE, width=6.5, height=5>>=
+counts.hc(e,facs=pData(e)[, "batch", drop = FALSE])
+@
+\caption{Hirearchical clustering of samples, showing confounding. The labels 
+are colored by batch number.
+}\label{HC2}
+\end{figure}
+
+\section{Heatmap} 
+
+A heatmap may be more informative than the dendrogram of samples, in the sense
+that it allows to identify the proteins most sensitive to this confounding. In
+this case we need a heatmap heigh enough to allow  room for all the protein
+names. The function \emph{counts.heatmap} provides two heatmaps, the first one 
+is fitted on an A4
+page and offers a general view, the second one is provided in a separate pdf
+file and is drawn with 3mm high rows to allow a confortable identification of
+each protein and its expression profile in the experiment.
+
+\begin{figure}[H]
+\centering
+<<fig=TRUE, echo=TRUE,warning=FALSE,message=FALSE,width=6,height=6>>=
+counts.heatmap(e,etit="UPS1",fac=pData(e)[, "treat"])
+@
+\caption{Global view heatmap. The column color bar is colored as per
+treatment levels.
+}\label{HM}
+\end{figure}
+
+
+\section{Batch effects correction} 
+
+When counfounding is detected due to batch effects, as in this case, and the
+runs are balanced in the two conditions to be compared, blocking may help in 
+the reduction of the residual variance, improving the sensitivity of the
+statistical tests. When dealing with spectral counts the usual model for the
+differential expression tests is a Generalized Linear Model (GLM)
+\cite{agresti2002} based on the
+Poisson distribution, the negative binomial, or the quasi-likelihood, and these
+models admit blocking as the usual ANOVA \cite{kutner} when dealing with 
+normally distributed continous data.
+
+The visualization of the influence of a batch effects correction, in the
+exploratory data analysis step, is easily carried out by the so called 
+\emph{mean centering} approach \cite{luo2010}, by which the centers of each 
+batch are made to coincide concealing the observed bias between the different 
+batches.  The PCA on the batch mean centered expression matrix will then show 
+the level of improvement.
+
+<<ChunkMC, echo=TRUE, tidy=FALSE>>=
+counts <- exprs(e)
+batch <- msms.dataset$batch
+batch.means <- t(apply(counts,1,function(x)
+       tapply(x,batch,function(v) mean(v))))
+msms.mc <- matrix(0, nrow=nrow(counts), ncol=ncol(counts))
+msms.mc[,batch=="0302"] <- sweep(counts[,batch=="0302"],1,
+                                 batch.means[,"0302"])
+msms.mc[,batch=="2502"] <- sweep(counts[,batch=="2502"],1,
+                                 batch.means[,"2502"])
+e.mc <- e
+exprs(e.mc) <- msms.mc
+smpl.pca <- counts.pca(e.mc,snms=snms)$pca
+{ cat("Principal components analisis on the batch mean centered SpC matrix\n")
+  cat("Variance of the first four principal components:\n\n")
+  print(summary(smpl.pca)$importance[,1:4])
+}
+@
+
+\begin{figure}[H]
+\centering
+<<fig=TRUE, echo=TRUE,width=6,height=4>>=
+par(mar=c(4,4,0.5,2)+0.1)
+counts.pca(e.mc, facs = pData(e)[, "treat", drop = FALSE],snms=snms)
+@
+\caption{PCA plot on the batch mean centered expression matrix,
+showing now an acceptable clustering by treatment level. 
+}\label{PCA.MC}
+\end{figure}
+
+This plots shows a clear improvement in the clustering of samples by treatment
+condition, and suggest that a model with batch as block factor will give better
+results than a model just including the treatment factor
+\footnote{Take nevertheless into account that mean centering is an additive correction (a shift), whereas in a GLM model with log link the inclusion of a blocking factor represents a multiplicative correction (a scaling).}.
+
+\section{Dispersion}
+
+The simplest distribution used to explain the observed counts in sampling is the
+Poisson distribution. With this distribution the variance is equal to the mean,
+so that the dispersion coefficient -the ratio variance to mean- is one. 
+When there are other sources of variation, apart of the sampling, such as
+the usual variability among biological replicates, we talk of overdispersion.
+In this situation the coefficient of dispersion is greater than one and the
+Poisson distribution is unable to explain this extra source of variance.
+Alternative GLM models able to explain overdispersion are based on the negative binomial distribution, or on the quasilikelihood \cite{agresti2002}.
+
+An EDA of a dataset based on counts should include an exploration of the
+residual coefficients of dispersion for each of the factors in the
+experimental design. This will help in deciding the model to use in the
+inference step.
+
+The \emph{disp.estimates} function plots the
+distribution of residual dispersion coefficients, and the scatterplot of
+residual variances vs mean SpC for each of the factors in the parameter
+\emph{facs}, if this parameter is NULL then the factors are taken as default
+from the \emph{phenoData} slot of the MSnSet object.
+
+<<ChunkPCA, echo=TRUE, tidy=FALSE>>=
+dsp <- disp.estimates(e)
+signif(dsp,4)
+@
+
+This function returns silently the quartiles and the quantiles at
+0.9, 0.95 and 0.99 of the residual dispersion of each factor.
+With technical replicates it is not uncommon to observe most of the
+dispersion coefficients lower that one. 
+This is a situation of underdispersion, most likely due to the competitive
+sampling at the MS system entrance. 
+
+\begin{figure}
+\centering
+<<fig=TRUE, echo=FALSE,width=4,height=7>>=
+par(mar=c(5,4,0.5,2)+0.1,cex.lab=0.8,cex.axis=0.8,cex.main=1.2)
+par(mfrow=c(2,1))
+disp.estimates(e,facs=pData(e)[, "batch", drop = FALSE])
+@
+\caption{Residual dispersion density plot, and residual variance vs mean 
+scatterplot in log10 scale, of the batch factor.
+}\label{disp}
+\end{figure}
+
+\begin{thebibliography}{11}
+\bibitem{mallik2010} Mallick P., Kuster B. \emph{Proteomics: a pragmatic perspective.} Nat Biotechnol 2010;28:695-709.
+\bibitem{neilson2011}
+Neilson K.A., Ali N.A., Muralidharan S., Mirzaei M., Mariani M.,
+Assadourian G., et al. \emph{Less label, more free: approaches in
+label-free quantitative mass spectrometry.} Proteomics
+2011;11:535-53.
+\bibitem{husson2010} Husson F., Le S., Pages J. \emph{Exploratory Multivariate Analysis by Example Using R.} CRC Press; 2010.
+\bibitem{luo2010} Luo J., Schumacher M., Scherer A., Sanoudou D., Megherbi D., Davison T., et al. \emph{A comparison of batch effect removal
+methods for enhancement of prediction performance using
+MAQC-II microarray gene expression data.}
+Pharmacogenomics J 2010, 10(4): 278-291
+\bibitem{josep2012} Gregori J., Villareal L., Mendez O., Sanchez A.,
+Baselga J., Villanueva J., \emph{Batch effects correction improves the sensitivity of significance tests in spectral counting-based comparative discovery proteomics}, Journal of Proteomics, 2012, 75, 3938-3951
+\bibitem{Gatto2012} Laurent Gatto and Kathryn S. Lilley, MSnbase - an R/Bioconductor package for isobaric tagged mass spectrometry data visualization, processing and quantitation, Bioinformatics 28(2), 288-289 (2012).
+\bibitem{chambers} Chambers J.M. \emph{Software for data analysis: programming
+with R}, 2008 Springer
+\bibitem{genolini} Genolini C. \emph{A (Not So) Short Introduction to S4} (2008)
+\bibitem{gentleman} Falcon S., Morgan M., Gentleman R. \emph{An Introduction to
+Bioconductor's ExpressionSet Class} (2007)
+\bibitem{agresti2002} Agresti A., \emph{Categorical Data Analysis},
+Wiley-Interscience, Hoboken NJ, 2002
+\bibitem{kutner} Kutner M.H., Nachtsheim C.J., Neter J., Li W.,
+\emph{Applied Linear Statistical Models}, Fifth Edition,
+McGraw-Hill Intl. Edition 2005
+\bibitem{quinn} Quinn G.P., Keough M.J. \emph{Experimental Design and Data Analysis for Biologists} Cambridge University Press; 1st Edition, Cambridge 2002.
+\end{thebibliography}
+
+\end{document}
+ 
+

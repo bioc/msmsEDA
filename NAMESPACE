@@ -1,0 +1,2 @@
+export(pp.msms.data, gene.table, count.stats, counts.pca, counts.hc, norm.counts, counts.heatmap, disp.estimates)
+import(RColorBrewer,MASS,gplots)

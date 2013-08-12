@@ -1,0 +1,12 @@
+Package: msmsEDA
+Type: Package
+Title: Exploratory Data Analysis of LC-MS/MS data by spectral counts
+Version: 0.99.4
+Date: 2013-07-26
+Author: Josep Gregori, Alex Sanchez
+Maintainer: Josep Gregori <gregori@aiqs.es>
+Depends: R (>= 2.15.0), MSnbase
+Imports: MASS, gplots, RColorBrewer
+Description: Exploratory data analysis to assess the quality of a set of LC-MS/MS experiments, and visualize de influence of the involved factors.
+License: GPL-2
+Encoding: latin1
