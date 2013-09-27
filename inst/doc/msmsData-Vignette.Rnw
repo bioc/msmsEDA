@@ -17,8 +17,8 @@
 \author{Josep Gregori, Alex Sanchez, and Josep Villanueva\\
    Vall Hebron Institute of Oncology \&\\
    Statistics Dept. Barcelona University\\
-  \texttt{jgregori@vhio.net}}
-\date{June 2013}
+  \texttt{josep.gregori@gmail.com}}
+\date{September 2013}
 
 \maketitle
 

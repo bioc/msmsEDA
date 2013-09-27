@@ -1,18 +1,9 @@
 ###################################
 ###     PACKAGE    msmsEDA      ###
 ###  MS/MS EDA PIPE-LINE v 1.0  ###
-###       by J. Gregori         ###
-###      24th May, 2013         ###
+###        by J. Gregori        ###
+###    24th September, 2013     ###
 ###################################
-
-###  Add a text line to the MSnSet log and check for validity
-add.log <- function(msnset,tproc)
-{ msnset@processingData@processing <-
-      c(msnset@processingData@processing,paste(tproc,": ",date(),sep=""))
-  if (validObject(msnset))
-    return(msnset)
-}
-
 
 ###  Pre-process msms counts matrix by replacing NAs by 0s, 
 ###    and further removing all-zero and '-R' pprotein rows
@@ -30,7 +21,7 @@ pp.msms.data <- function(msnset)
   fl2 <- substring(pnms, nchar(pnms) - 1) == "-R"
   flags <- (!fl2 & fl1)
   msnset <- msnset[flags, ]
-  add.log(msnset,"Applied pp.msms.data preprocessing")
+  MSnbase:::logging(msnset,"Applied pp.msms.data preprocessing")
 }
 
 
@@ -148,7 +139,7 @@ counts.hc <- function(msnset,do.plot=TRUE,facs=NULL)
 norm.counts <- function(msnset,div)
 { msms.counts <- exprs(msnset)
   exprs(msnset) <- sweep(msms.counts,MARGIN=2,STATS=div,FUN="/")
-  add.log(msnset,"Applied norm.counts normalization ")
+  MSnbase:::logging(msnset,"Applied norm.counts normalization ")
 }
 
 

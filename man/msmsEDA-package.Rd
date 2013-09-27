@@ -31,7 +31,7 @@ License: \tab GPL-2\cr
 }
 \author{
 Josep Gregori, Alex Sanchez and Josep Villanueva \cr
-Maintainer: Josep Gregori <gregori@aiqs.es>
+Maintainer: Josep Gregori <josep.gregori@gmail.com>
 }
 \references{
 Gregori J, Villarreal L, Mendez O, Sanchez A, Baselga J, Villanueva J,
