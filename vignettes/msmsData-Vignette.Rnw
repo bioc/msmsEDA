@@ -18,7 +18,7 @@
    Vall Hebron Institute of Oncology \&\\
    Statistics Dept. Barcelona University\\
   \texttt{josep.gregori@gmail.com}}
-\date{September 2013}
+%\date{January 18,2014}
 
 \maketitle
 
@@ -129,44 +129,48 @@ tfvnm <- count.stats(e)
 }
 @
 
-Two graphical means will contribute to visualize this distribution.
-A set of boxplots by sample:
+Three graphical means will contribute to visualize this distribution:
 
-<<Chunk3, echo=TRUE, eval=FALSE>>=
-boxplot(exprs(e),las=2,col="lavender")
-@
+\begin{enumerate}[i)]
+\item
+A barplot of total SpC by sample scaled to the median. Ideally when the
+same amount of total protein is measured in each sample, the same total number
+of spectral counts will be observed. A good quality experiment will show all 
+the bars near 1. 
+\item
+A set of SpC boxplots by sample. As most proteins in a 
+sample may show very low signal, 0 or 1 SpC, resulting in sparce SpC vectors, 
+more informative boxplots are obtained when removing the values below a given
+thresold. Here the proteins with SpC below \texttt{minSpC} are excluded of
+each sample. The boxplots show the distribution of $log_2$ transformed SpC
+values by sample. 
+\item
+Superposed SpC density plots by sample. As before the 
+proteins with SpC below \texttt{minSpC} are excluded of each sample and the 
+SpC are $log_2$ transformed.
+\end{enumerate}
 
-\begin{figure}[H]
+\begin{figure}[h]
 \centering
-<<fig=TRUE,echo=FALSE, width=6, height=4>>=
-par(mar=c(5,4,0.5,2)+0.1)
-boxplot(exprs(e),las=2,col="lavender")
+<<fig=TRUE,echo=TRUE, width=6, height=9.5>>=
+layout(mat=matrix(1:2,ncol=1),widths=1,heights=c(0.35,0.65))
+spc.barplots(exprs(e),fact=pData(e)$treat)
+spc.boxplots(exprs(e),fact=pData(e)$treat,minSpC=2,
+             main="UPS1 200fm vs 600fm")
 @
-\caption{Samples boxplots}\label{boxplot}
-\end{figure}
+\caption{A) Total SpC by sample scaled to the median.
+ B) Samples SpC boxplots.}\label{boxplot}
+\end{figure} 
 
-And a barplot of total SpC normalizing factors:
-
-<<Chunk4, echo=FALSE>>=
-nfact <- median(tfvnm[,2])/tfvnm[,2]
-@
-
-<<echo=TRUE, eval=FALSE>>=
-nfact <- median(tfvnm[,2])/tfvnm[,2]
-barplot(nfact,las=2,col="lavender")
-abline(h=1,lty=4)
-@
-
-\begin{figure}[H]
+\begin{figure}[h]
 \centering
-<<fig=TRUE,echo=FALSE,width=4,height=2.5>>=
-par(mar=c(4,4,0.5,2)+0.1)
-par(cex.axis=0.6,cex.lab=0.6)
-barplot(nfact,las=2,col="lavender")
-abline(h=1,lty=4)
+<<fig=TRUE,echo=TRUE, width=6, height=6>>=
+spc.densityplots(exprs(e),fact=pData(e)$treat,minSpC=2,
+                 main="UPS1 200fm vs 600fm")
 @
-\caption{Normalizing factors barplot}\label{barplot}
-\end{figure}
+\caption{Samples SpC density plots.}\label{density}
+\end{figure} 
+
 
 \section{Principal Components Analysis} 
 
@@ -278,39 +282,40 @@ batches.  The PCA on the batch mean centered expression matrix will then show
 the level of improvement.
 
 <<ChunkMC, echo=TRUE, tidy=FALSE>>=
-counts <- exprs(e)
-batch <- msms.dataset$batch
-batch.means <- t(apply(counts,1,function(x)
-       tapply(x,batch,function(v) mean(v))))
-msms.mc <- matrix(0, nrow=nrow(counts), ncol=ncol(counts))
-msms.mc[,batch=="0302"] <- sweep(counts[,batch=="0302"],1,
-                                 batch.means[,"0302"])
-msms.mc[,batch=="2502"] <- sweep(counts[,batch=="2502"],1,
-                                 batch.means[,"2502"])
-e.mc <- e
-exprs(e.mc) <- msms.mc
-smpl.pca <- counts.pca(e.mc,snms=snms)$pca
-{ cat("Principal components analisis on the batch mean centered SpC matrix\n")
-  cat("Variance of the first four principal components:\n\n")
-  print(summary(smpl.pca)$importance[,1:4])
-}
+data(msms.dataset)
+msnset <- pp.msms.data(msms.dataset)
+spcm <- exprs(msnset)
+fbatch <- pData(msnset)$batch
+spcm2 <- batch.neutralize(spcm, fbatch, half=TRUE, sqrt.trans=TRUE)
 @
 
 \begin{figure}[H]
 \centering
 <<fig=TRUE, echo=TRUE,width=6,height=4>>=
+###  Plot the PCA on the two first PC, and colour by treatment level
+###  to visualize the improvement.
+exprs(msnset) <- spcm2
+facs <- pData(e)
+snms <- substr(as.character(facs$treat),1,2)
+snms <- paste(snms,as.integer(facs$batch),sep=".")
 par(mar=c(4,4,0.5,2)+0.1)
-counts.pca(e.mc, facs = pData(e)[, "treat", drop = FALSE],snms=snms)
+counts.pca(msnset, facs=facs$treat, do.plot=TRUE, snms=snms)
 @
 \caption{PCA plot on the batch mean centered expression matrix,
-showing now an acceptable clustering by treatment level. 
+showing now a better clustering by treatment level. 
 }\label{PCA.MC}
 \end{figure}
 
 This plots shows a clear improvement in the clustering of samples by treatment
 condition, and suggest that a model with batch as block factor will give better
-results than a model just including the treatment factor
-\footnote{Take nevertheless into account that mean centering is an additive correction (a shift), whereas in a GLM model with log link the inclusion of a blocking factor represents a multiplicative correction (a scaling).}.
+results than a model just including the treatment factor.
+The incidence of the correction may be evaluated as:
+
+<<ChunkMC2, echo=TRUE, tidy=FALSE>>=
+###  Incidence of the correction
+summary(as.vector(spcm-spcm2))
+plot(density(as.vector(spcm-spcm2)))
+@
 
 \section{Dispersion}
 
@@ -357,6 +362,31 @@ disp.estimates(e,facs=pData(e)[, "batch", drop = FALSE])
 scatterplot in log10 scale, of the batch factor.
 }\label{disp}
 \end{figure}
+
+\section{Informative features}
+
+In the border between EDA and inference we may explore the number and
+distribution of informative features. We mean by informative features
+those proteins showing a high enough signal in the most abundant condition
+and with an absolute log fold change between treatment levels above a
+given threshold. The following plot shows in red the features with 
+signal not bellow 2 SpC in the most abundant condition, and with  
+\texttt{minLFC} of 1. To improve the plot two transformations are
+available, either '\texttt{log2}' or '\texttt{sqrt}', although '\texttt{none}'
+is also accepted. 
+
+\begin{figure}[H]
+\centering
+<<fig=TRUE, echo=TRUE,width=5,height=5>>=
+spc.scatterplot(spcm2,facs$treat,trans="sqrt",minSpC=2,minLFC=1,
+                main="UPS1 200fm vs 600fm")
+@
+\caption{Scatterplot with informative features in red, showing the borders
+of fold change 2 and 0.5 as blue dash-dot lines.
+}\label{scatt}
+\end{figure}
+
+\newpage
 
 \begin{thebibliography}{11}
 \bibitem{mallik2010} Mallick P., Kuster B. \emph{Proteomics: a pragmatic perspective.} Nat Biotechnol 2010;28:695-709.
