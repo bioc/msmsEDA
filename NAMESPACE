@@ -1,2 +1,2 @@
-export(pp.msms.data, gene.table, count.stats, counts.pca, counts.hc, norm.counts, counts.heatmap, disp.estimates)
+export(pp.msms.data, gene.table, count.stats, counts.pca, counts.hc, norm.counts, counts.heatmap, disp.estimates, filter.flags, spc.barplots, spc.boxplots, spc.densityplots, spc.scatterplot, batch.neutralize)
 import(RColorBrewer,MASS,gplots)

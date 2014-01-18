@@ -1,8 +1,8 @@
 ###################################
 ###     PACKAGE    msmsEDA      ###
-###  MS/MS EDA PIPE-LINE v 1.0  ###
+###      SpC EDA PIPE-LINE      ###
 ###        by J. Gregori        ###
-###    24th September, 2013     ###
+###    v. 12th January, 2014    ###
 ###################################
 
 ###  Pre-process msms counts matrix by replacing NAs by 0s, 
@@ -54,7 +54,7 @@ count.stats <- function(msnset)
 
 
 ###  Samples PCA map
-counts.pca <- function(msnset,facs=NULL,do.plot=TRUE,snms=NULL)
+counts.pca <- function(msnset,facs=NULL,do.plot=TRUE,snms=NULL,wait=TRUE)
 { #  PCA decomposition
   msms.counts <- exprs(msnset)
   smpl.pca <- prcomp(t(msms.counts))
@@ -62,7 +62,6 @@ counts.pca <- function(msnset,facs=NULL,do.plot=TRUE,snms=NULL)
   pc.vars <- summary(smpl.pca)$importance
   if(!do.plot)
     invisible( list(pca=smpl.pca,pc.vars=pc.vars) )
-  
   #  Plots
   cls <- c(brewer.pal(8,"Dark2"),"red","navy","black")
   if(is.null(snms))
@@ -74,7 +73,7 @@ counts.pca <- function(msnset,facs=NULL,do.plot=TRUE,snms=NULL)
   if(is.null(facs)) facs <- pData(msnset)
   if(!is.data.frame(facs)) facs <- data.frame(facs)
   for(i in 1:ncol(facs))
-  { if(i>1 & interactive())
+  { if(i>1 & interactive() & wait)
       readline(prompt = "Pause. Press <Enter> to continue...")
     gtit <- paste("PCA - ",colnames(facs)[i],sep="")
     eqscplot(smpl.pca$x[,1],smpl.pca$x[,2],type="n",xlab= xlb,ylab=ylb)
@@ -107,8 +106,8 @@ edgeCol <- function(dend, keys, fgr="red", lwd=1, ...)
 
 
 ###  Samples dendrograms
-counts.hc <- function(msnset,do.plot=TRUE,facs=NULL)
-{	msms.counts <- exprs(msnset)  
+counts.hc <- function(msnset,do.plot=TRUE,facs=NULL,wait=TRUE)
+{ msms.counts <- exprs(msnset)  
   hc <- hclust(dist(t(msms.counts)))
   if(!do.plot)
     invisible(hc)
@@ -120,7 +119,7 @@ counts.hc <- function(msnset,do.plot=TRUE,facs=NULL)
   if(is.null(facs)) facs <- pData(msnset)
   if(!is.data.frame(facs)) facs <- data.frame(facs)
   for(i in 1:ncol(facs))
-  { if(i>1 & interactive())
+  { if(i>1 & interactive() & wait)
       readline(prompt = "Pause. Press <Enter> to continue...")
     gtit <- paste("HC - ",colnames(facs)[i],sep="")
     dend_colo1 <- as.dendrogram(hc)
@@ -194,7 +193,7 @@ class.means <- function(msms,gpf)
 ###  Compute and plot distribution of dispersion coefficients
 ###    by considering one factor at a time. 
 disp.estimates <-
-function(msnset,facs=NULL,do.plot=TRUE,etit=NULL,to.pdf=FALSE)
+       function(msnset,facs=NULL,do.plot=TRUE,etit=NULL,to.pdf=FALSE,wait=TRUE)
 { msms.norm <- exprs(msnset)
   if(is.null(facs)) facs <- pData(msnset)
   if(!is.data.frame(facs)) facs <- data.frame(facs)
@@ -213,15 +212,16 @@ function(msnset,facs=NULL,do.plot=TRUE,etit=NULL,to.pdf=FALSE)
   { pmn <- class.means(msms.norm,facs[,i])
     pvar <- residual.var(msms.norm,facs[,i])
     pdisp <- pvar/pmn
+    pdisp[is.na(pdisp)] <- 0
     res[i,] <- quantile(pdisp,prob=p)
     if(do.plot)
-    { if(!to.pdf & i>1 & interactive())
+    { if(!to.pdf & i>1 & interactive() & wait)
         readline(prompt = "Pause. Press <Enter> to continue...")
       gtit <- paste("Residual dispersion factor ",colnames(facs)[i],sep="")
       plot(density(pdisp),xlim=c(0,quantile(pdisp,0.975)),main="")
       abline(v=1,lty=4,col="gray")
       title(main=gtit,line=1,cex=1)
-      if(!to.pdf & interactive())
+      if(!to.pdf & interactive() & wait)
         readline(prompt = "Pause. Press <Enter> to continue...")
       eqscplot(log10(pmn),log10(pvar),pch="+",cex=0.6,xlab="Log SpC mean",
                ylab="Log SpC variance")
@@ -232,4 +232,204 @@ function(msnset,facs=NULL,do.plot=TRUE,etit=NULL,to.pdf=FALSE)
   }
   if(to.pdf) dev.off()
   invisible(res)
+}
+
+
+###  Flag features of low signal and lowest dispersion
+filter.flags <- function(data,minSpC=2,frac.out=0.4)
+{ data <- data[rowMeans(data)>=minSpC,]
+  cdisp <- apply(data,1,var)/rowMeans(data)
+  thr <- quantile(cdisp,probs=frac.out)
+  cdisp>=thr
+}
+
+
+###  SpC barplots by sample
+spc.barplots <- function(msms.counts,fact=NULL,...)
+{ n <- ncol(msms.counts)
+  if(is.null(fact))
+    fact <- rep(1,n)
+  if(is.data.frame(fact) | is.matrix (fact)) fact <- fact[,1]
+  fact <- as.factor(fact)   
+  pal <- brewer.pal(8,"Dark2")
+  cls <- pal[as.integer(fact)]
+  tcnts <- apply(msms.counts,2,sum)
+  medt <- median(tcnts)
+  div <- tcnts/medt
+  names(div) <- colnames(msms.counts)
+  omar <- par(mar=c(7,3,2,2))
+  if("col" %in% names(list(...)))
+  { barplot(div,las=2,...)
+  } else {
+    barplot(div,las=2,col=cls,...)
+  }
+  abline(h=1,lty=2,col="blue")
+  par(mar=omar)
+}
+
+
+###  SpC boxplots by sample
+spc.boxplots <- function(msms.counts,fact=NULL,minSpC=2,...)
+{ n <- ncol(msms.counts)
+  if(is.null(fact))
+     fact <- rep(1,n)
+  if(is.data.frame(fact) | is.matrix (fact)) fact <- fact[,1]
+  fact <- as.factor(fact)   
+  
+  ###  Boxplots
+  mx <- 0
+  slst <- vector("list",n)
+  names(slst) <- colnames(msms.counts)
+  fn <- function(x) log2(x+0.1)
+  for(i in 1:n)
+  { v <- msms.counts[,i]
+    slst[[i]] <- fn(v[v>=minSpC])
+    mx <- max(mx,slst[[i]])
+  }
+  omar <- par(mar=c(6.5,4,4,2)+0.1)
+  if("col" %in% names(list(...)))
+  { pal <- list(...)$col
+    cls <- pal[as.integer(fact)]
+    boxplot(slst,ylim=c(1,mx*1.15),xaxt="n",ylab="log2 SpC",...)
+  } else {
+    pal <- brewer.pal(8,"Dark2")
+    cls <- pal[as.integer(fact)]
+    boxplot(slst,ylim=c(1,mx*1.15),xaxt="n",ylab="log2 SpC",col=cls,...)
+  }
+  axis(side=1,at=1:n,las=2,cex.axis=0.8,labels=names(slst))
+  if(minSpC)
+  { tt <- paste("min SpC >=",minSpC)
+    legend("topright",fill=pal,legend=levels(fact),cex=0.8,
+           title=tt)
+  } else {           
+    legend("topright",fill=pal,legend=levels(fact),cex=0.8)
+  }
+  par(mar=omar)
+}
+
+
+###  SpC density plots by sample
+spc.densityplots <- function(msms.counts,fact=NULL,minSpC=2,...)
+{ 
+  n <- ncol(msms.counts)
+  if(is.null(fact))
+     fact <- rep(1,n)
+  if(is.data.frame(fact) | is.matrix (fact)) fact <- fact[,1]
+  fact <- as.factor(fact)   
+  pal <- brewer.pal(8,"Dark2")
+  cls <- pal[as.integer(as.factor(fact))]
+  ###  Density plots
+  mx <- 0
+  n <- ncol(msms.counts)
+  slst <- vector("list",n)
+  fn <- function(x) log2(x+0.1)
+  for(i in 1:n)
+  { v <- msms.counts[,i]
+    slst[[i]] <- fn(v[v>=minSpC])
+    mx <- max(mx,density(slst[[i]])$y)
+  }
+  omar <- par(mar=c(5,4,3,2)+0.1)
+  if("main" %in% names(list(...)))
+  { plot(density(slst[[i]]),ylim=c(0,mx),col=cls[1],lwd=2,
+           xlab="log2 SpC",...)
+  } else {
+    plot(density(slst[[i]]),ylim=c(0,mx),col=cls[1],lwd=2,
+         xlab="log2 SpC",main="",...)
+  }
+  if(minSpC>0)
+    abline(v=log2(minSpC),lty=4,col="gray")
+  for(i in 1:n)
+    lines(density(slst[[i]]),col=cls[i],lwd=2)
+  if(minSpC)
+  { tt <- paste("min SpC >=",minSpC)
+    legend("topright",fill=pal,legend=levels(fact),cex=0.8,
+           title=tt)
+  } else {           
+    legend("topright",fill=pal,legend=levels(fact),cex=0.8)
+  }
+  par(mar=omar)
+}
+
+
+###  Scatterplot means vs means given a two level factor
+###  Two SpC transformations are possible, either log2 or sqrt.
+spc.scatterplot <- function(msms.counts,treat,trans="log2",minSpC=2,minLFC=1,...)
+{
+  # signal and effect filter
+  treat <- as.factor(treat)   
+  mspc <- t(apply(msms.counts,1,function(x) tapply(x,treat,mean)))
+  mx <- apply(mspc[,1:2],1,max)
+  mn <- apply(mspc[,1:2],1,min)
+  fl <- apply(mspc[,1:2],1,function(x) max(x)>=minSpC) & abs(log2(mx/mn))>=minLFC
+  # scatterplot on the untransformed counts
+  if(trans=="none")
+  { omar <- par(mar=c(5,5,3,2)+0.1)
+    plot(mspc[,1:2],pch="+",cex=0.7,asp=1,
+       xlab=paste("mean SpC(",colnames(sqrtm)[1],")",sep=""),
+       ylab=paste("mean SpC(",colnames(sqrtm)[2],")",sep=""),...)
+    points(mspc[fl,1:2],pch="+",cex=0.7,col="red")
+    abline(a=0,b=1,lty=4,col="gray")
+    abline(a=0,b=2,lty=4,col="navy")
+    abline(a=0,b=0.5,lty=4,col="navy")
+    par(mar=omar)
+  }
+  # scatterplot on the sqrt transformed counts
+  if(trans=="sqrt")
+  { sqrtm <- sqrt(mspc)
+    omar <- par(mar=c(5,5,3,2)+0.1)
+    plot(sqrtm[,1:2],pch="+",cex=0.7,asp=1,
+       xlab=substitute(sqrt(m*e*a*n~ ~SpC(x)), list(x = colnames(sqrtm)[1])),
+       ylab=substitute(sqrt(m*e*a*n~ ~SpC(x)), list(x = colnames(sqrtm)[2])),...)
+    points(sqrtm[fl,1:2],pch="+",cex=0.7,col="red")
+    abline(a=0,b=1,lty=4,col="gray")
+    abline(a=0,b=sqrt(2),lty=4,col="navy")
+    abline(a=0,b=1/sqrt(2),lty=4,col="navy")
+    par(mar=omar)
+  }
+  # scatterplot on the log2 transformed counts
+  off <- 0.01
+  if(trans=="log2")
+  { logm <- log2(mspc+off)
+    mxx <- max(logm[,1])
+    mxy <- max(logm[,2])
+    mx <- max(mxx,mxy)
+    omar <- par(mar=c(5,5,3,2)+0.1)
+    plot(logm[,1:2],pch="+",cex=0.7,asp=1,xlim=c(-3,mx),ylim=c(-3,mx),
+       xlab=substitute(log[2](m*e*a*n~ ~SpC(x)), list(x = colnames(logm)[1])),
+       ylab=substitute(log[2](m*e*a*n~ ~SpC(x)), list(x = colnames(logm)[2])),...)
+    points(logm[fl,1:2],pch="+",cex=0.7,col="red")
+    abline(a=0,b=1,lty=4,col="gray")
+    abline(a=log2(2),b=1,lty=4,col="navy")
+    abline(a=-log2(2),b=1,lty=4,col="navy")
+    par(mar=omar)
+  }
+}
+
+
+###  Batch effects correction
+###    Fit a model with a batch factor
+###    Remove batch effect. 
+###    If half==TRUE, half correction to each batch
+###    If sqrt.trans is TRUE transform previously the SpC by sqrt
+###     and back transform after the correction.
+batch.neutralize <- function(dat,fbatch,half=TRUE,sqrt.trans=TRUE)
+{ Z <- dat
+  #  Sqrt transformation
+  if(sqrt.trans) Z <- sqrt(dat)
+  #  The model matrix  with a single factor (batch)
+  if(!half)
+    ocont <- options(contrasts=c("contr.treatment","contr.poly"))
+  if(half)
+    ocont <- options(contrasts=c("contr.sum","contr.poly"))
+  n <- ncol(dat)
+  X <- model.matrix(~fbatch)
+  options(contrasts=ocont$contrasts)
+  #  Fit the linear model
+  XinvXX <- X %*% solve(t(X) %*% X)
+  B <- Z %*% XinvXX
+  #  The correction 
+  dat <- Z - B[,-1,drop=FALSE] %*% t(X[,-1,drop=FALSE])
+  #  Back to the original scale
+  if(sqrt.trans) dat <- dat^2
+  dat
 }

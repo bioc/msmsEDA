@@ -7,7 +7,7 @@ Principal components analysis of an spectral counts matrix.
 A summary and different plots are given as a result of principal components analysis of an spectral counts matrix.
 }
 \usage{
-counts.pca(msnset,facs=NULL,do.plot=TRUE,snms=NULL)
+counts.pca(msnset, facs = NULL, do.plot = TRUE, snms = NULL, wait = TRUE)
 }
 \arguments{
   \item{msnset}{
@@ -21,6 +21,11 @@ NULL or a data frame with factors. See details below.
 }
   \item{snms}{
 Character vector with sample short names to be plotted. If NULL then 'Xnn' is plotted where 'nn' is the column number in the datset.
+}
+  \item{wait}{ This function may draw different plots, one by given factor in
+\code{facs}. When in interactive mode the default is to wait for confirmation
+before proceeding to the next plot. When \code{wait} is FALSE and R in 
+interactive mode, instructs not to wait for confirmation.
 }
 }
 \details{

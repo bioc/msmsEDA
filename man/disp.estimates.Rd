@@ -9,7 +9,7 @@ Estimates the residual dispersion of each row of a spectral counts matrix as the
 \code{facs}. Different plots are drawn to help in the interpretation of the results.
 }
 \usage{
-disp.estimates(msnset, facs=NULL, do.plot = TRUE, etit = NULL, to.pdf=FALSE)
+disp.estimates(msnset, facs=NULL, do.plot=TRUE, etit=NULL, to.pdf=FALSE, wait=TRUE)
 }
 \arguments{
   \item{msnset}{
@@ -27,12 +27,18 @@ Root name of the pdf file where to send the plots.
   \item{to.pdf}{
 A logical indicating whether a pdf file should be produced.
 }
+  \item{wait}{ This function draws different plots, two by given factor in
+\code{facs}. When in interactive mode and \code{to.pdf} FALSE, the default is 
+to wait for confirmation before proceeding to the next plot. When \code{wait} 
+is FALSE and R in interactive mode and \code{to.pdf} FALSE, instructs not to 
+wait for confirmation.
+}
 }
 \details{
 Estimates the residual dispersion of each protein in the spectral counts matrix, for each factor in \code{facs}, and returns the quantiles at \code{c(0.25, 0.5, 0.75, 0.9, 0.95, 0.99, 1)} of the distribution of dispersion values for each factor. If \code{facs} is NULL the factors are taken from \code{pData(msnset)}. If \code{do.plot} is TRUE this function produces a density plot of dispersion values, and the scatterplot of residual variance vs mean values, in log10 scale. If \code{do.pdf} is TRUE \code{etit} provides the root name for the pdf file name, ending with "-DispPlots.pdf". If \code{etit} is NULL a default value of "MSMS" is provided. A different set of plots is produced for each factor in \code{facs}.
 }
 \value{
-Silently returns a matrix with the quantiles at \code{c(0.25, 0.5, 0.75, 0.9, 0.95, 0.99, 1)} of the residual dispersion estimates. Each row has the residual dispersion values attribuable to each factor in \code{facs}.
+Invisibly returns a matrix with the quantiles at \code{c(0.25, 0.5, 0.75, 0.9, 0.95, 0.99, 1)} of the residual dispersion estimates. Each row has the residual dispersion values attribuable to each factor in \code{facs}.
 }
 \author{
 Josep Gregori

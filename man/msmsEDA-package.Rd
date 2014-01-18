@@ -6,27 +6,35 @@
 Exploratory Data Analysis of label-free LC-MS/MS spectral counts
 }
 \description{
-Exploratory data analysis to assess the quality of a set of label-free LC-MS/MS experiments, quantified by spectral counts, and visualize de influence of the involved factors.
-Visualization tools to discover outliers and eventual confounding.
+Exploratory data analysis to assess the quality of a set of label-free LC-MS/MS 
+experiments, quantified by spectral counts, and visualize de influence of the 
+involved factors. Visualization tools to assess quality and to discover outliers 
+and eventual confounding.
 }
 \details{
 \tabular{ll}{
 Package: \tab msmsEDA\cr
 Type: \tab Package\cr
-Version: \tab 1.0\cr
-Date: \tab 2013-05-24\cr
+Version: \tab 1.2.0\cr
+Date: \tab 2014-01-18\cr
 License: \tab GPL-2\cr
 }
 
 \tabular{ll}{
-\code{pp.msms.data}: \tab  {data preprocessing} \cr
-\code{gene.table}: \tab  {extract gene symbols from protein description} \cr
-\code{count.stats}: \tab  {summaries by sample} \cr
-\code{counts.pca}: \tab  {principal components analysis} \cr
-\code{counts.hc}: \tab  {hierarchical clustering of samples} \cr
-\code{norm.counts}: \tab  {normalization of spectral counts matrix} \cr
-\code{counts.heatmap}:  \tab{experiment heatmap} \cr
-\code{disp.estimates}: \tab  {dispersion analysis and plots} \cr
+\code{pp.msms.data} \tab  {data preprocessing} \cr
+\code{gene.table} \tab  {extract gene symbols from protein description} \cr
+\code{count.stats} \tab  {summaries by sample} \cr
+\code{counts.pca} \tab  {principal components analysis} \cr
+\code{counts.hc} \tab  {hierarchical clustering of samples} \cr
+\code{norm.counts} \tab  {normalization of spectral counts matrix} \cr
+\code{counts.heatmap}  \tab{experiment heatmap} \cr
+\code{disp.estimates} \tab  {dispersion analysis and plots} \cr
+\code{filter.flags} \tab  {flag informative features} \cr
+\code{spc.barplots} \tab  {sample sizes barplots} \cr
+\code{spc.boxplots} \tab  {samples SpC boxplots} \cr
+\code{spc.densityplot} \tab  {samples SpC density plots} \cr
+\code{spc.scatterplot} \tab  {scatterplot comparing two conditions} \cr
+\code{batch.neutralize} \tab  {batch effects correction} \cr
 }
 }
 \author{

@@ -7,7 +7,7 @@ Hierarchical clustering on an spectral counts matrix.
 Hierarchical clustering of samples in an spectral counts matrix, coloring tree branches according to factor levels.
 }
 \usage{
-counts.hc(msnset, do.plot = TRUE, facs = NULL)
+counts.hc(msnset, do.plot=TRUE, facs=NULL, wait=TRUE)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -19,6 +19,11 @@ A logical indicating whether to plot the dendrograms.
 }
   \item{facs}{
 NULL, or a data frame with factors. See details below.
+}
+  \item{wait}{ This function may draw different plots, one by given factor in
+\code{facs}. When in interactive mode the default is to wait for confirmation
+before proceeding to the next plot. When \code{wait} is FALSE and R in 
+interactive mode, instructs not to wait for confirmation.
 }
 }
 
