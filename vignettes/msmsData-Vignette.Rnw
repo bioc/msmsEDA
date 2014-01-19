@@ -24,15 +24,16 @@
 
 \section{Introduction}
 
-Label-free differential proteomics is based on comparing the
+In biomarker discovery, label-free differential proteomics is based 
+on comparing the
 expression of proteins between different biological conditions
 \cite{mallik2010} \cite{neilson2011}.
-The experimental design involved for these experiments just
-requires elementary precautions such as randomization and
-blocking \cite{quinn}. Working with balanced blocks in which all
-biological conditions are measured by a number of technical
-replicates, and within the shortest time window possible, helps
-to reduce experimental bias. Unfortunately, there are many
+The experimental design involved for these experiments 
+requires of randomization and blocking \cite{quinn}. 
+Working with balanced blocks in which all
+biological conditions are measured by a number of technical and/or
+biological replicates, and within the shortest time window possible, 
+helps to reduce experimental bias. Unfortunately, there are many
 factors that may bias the results in a systematic manner:
 different operators, different chromatographic columns, different
 protein digestions, an eventual repair of the LC-MS system,
@@ -41,16 +42,18 @@ randomization help to control to some extent these factors.
 However, even using the best experimental design some
 uncontrolled variables may still interfere with differential
 proteomics experiments. These uncontrolled variables may be
-responsible for batch effects which are a type of bias usually
-evidenced when samples do not cluster by their biological
-condition when using unsupervised techniques such as Principal
-Components Analysis (PCA) or Hierarchical Clustering (HC)
-\cite{husson2010}. The most benign consequence of batch effects is an
-increase in the measured variability with a decreased
+responsible for the manifestation of batch effects. 
+Effects which are usually evidenced when samples do not cluster 
+by their biological condition using multidimensional unsupervised 
+techniques such as Principal Components Analysis (PCA) or 
+Hierarchical Clustering (HC) \cite{husson2010}. 
+The most benign consequence of batch effects is an
+increase in the observed variability with a decreased
 sensitivity to detect biological differences. In the worst
 scenario, batch effects can mask completely the underlying
 biology in the experiment.
 \newline
+
 Exploratory Data Analysis (EDA) helps in evidencing confounding
 factors and eventual outliers. In front of any '-omics' experiment
 it is always wise to perfom an EDA before any differential expression
@@ -66,10 +69,10 @@ of a bad conditioned sample.
 
 The dataset of this example \cite{josep2012} is the result of an spiking 
 experiment, 
-showing real LC-MS/MS data obtained in ideal conditions, and optimal 
-to detect batch effect factors. Samples of 500 micrograms of a standard 
+showing LC-MS/MS data obtained in ideal conditions, and optimal 
+to detect batch effects. Samples of 500 micrograms of a standard 
 yeast lysate are spiked either with 200fm or 600fm of a complex mix of 
-48 human proteins (UPS1, Sigma-Aldrich). The measures were done in two
+48 human proteins (UPS1, Sigma-Aldrich\textregistered). The measures were done in two
 different runs, separated by a year time. The first run consisted of
 four replicates of each condition, and the second run consisted of
 three replicates of each condition.
@@ -100,12 +103,14 @@ The aim of the exploratory data analysis, in this case, is to evidence
 the existence of batch effects between the two runs. And eventually to
 check the opportunity of a simple batch effects correction.
 \newline
-Before proceeding to the EDA, improper rows in the spectral counts
-matrix should be removed. By improper, we mean here, the rows with all
-zeroes, which could come from the subsetting from a bigger SpC matrix,
-and the rows belonging to artefactual identifications of '-R' proteins,
-also NAs, common when joining datasets in which not exactly the same
+
+Before proceeding to the EDA, a data pre-processing is required to solve
+NAs and to remove improper rows in the spectral counts matrix.
+The NAs, common when joining datasets in which not exactly the same
 proteins are identified, should be substituted by 0.
+By improper rows to be removed, we mean: i) the rows with all zeroes, which 
+could come from the subsetting from a bigger SpC matrix. 
+ii) The rows belonging to artefactual identifications of '-R' proteins.
 
 <<Chunk1, echo=TRUE>>=
 e <- pp.msms.data(msms.dataset)
@@ -141,9 +146,9 @@ the bars near 1.
 A set of SpC boxplots by sample. As most proteins in a 
 sample may show very low signal, 0 or 1 SpC, resulting in sparce SpC vectors, 
 more informative boxplots are obtained when removing the values below a given
-thresold. Here the proteins with SpC below \texttt{minSpC} are excluded of
-each sample. The boxplots show the distribution of $log_2$ transformed SpC
-values by sample. 
+threshold. Here the proteins with SpC below \texttt{minSpC} are excluded of
+a sample. The boxplots show the distribution of the remaining $log_2$ 
+transformed SpC values by sample. 
 \item
 Superposed SpC density plots by sample. As before the 
 proteins with SpC below \texttt{minSpC} are excluded of each sample and the 
